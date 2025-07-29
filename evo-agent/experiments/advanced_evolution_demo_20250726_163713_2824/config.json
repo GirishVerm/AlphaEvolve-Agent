@@ -1,0 +1,10 @@
+{
+  "experiment_name": "advanced_evolution_demo",
+  "experiment_id": null,
+  "seed": 42,
+  "mlflow_enabled": false,
+  "wandb_enabled": false,
+  "local_tracking": true,
+  "artifact_dir": "experiments",
+  "checkpoint_interval": 10
+}

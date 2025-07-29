@@ -1,0 +1,42 @@
+[
+  {
+    "generation": 1,
+    "best_fitness": 0.9666666666666665,
+    "population_size": 2,
+    "total_candidates": 2,
+    "timestamp": "2025-07-26T16:57:07.246647",
+    "step": 1
+  },
+  {
+    "generation": 2,
+    "best_fitness": 0.9666666666666665,
+    "population_size": 3,
+    "total_candidates": 4,
+    "timestamp": "2025-07-26T16:57:22.751538",
+    "step": 2
+  },
+  {
+    "generation": 3,
+    "best_fitness": 0.9999999999999999,
+    "population_size": 3,
+    "total_candidates": 6,
+    "timestamp": "2025-07-26T16:58:23.839561",
+    "step": 3
+  },
+  {
+    "generation": 4,
+    "best_fitness": 0.9999999999999999,
+    "population_size": 3,
+    "total_candidates": 6,
+    "timestamp": "2025-07-26T16:58:54.613267",
+    "step": 4
+  },
+  {
+    "generation": 5,
+    "best_fitness": 0.9999999999999999,
+    "population_size": 3,
+    "total_candidates": 6,
+    "timestamp": "2025-07-26T17:00:56.358561",
+    "step": 5
+  }
+]
