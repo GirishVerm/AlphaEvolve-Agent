@@ -11,7 +11,6 @@ import logging
 import asyncio
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Callable, Tuple
-from dataclasses import dataclass
 import numpy as np
 import subprocess
 import tempfile
@@ -22,22 +21,9 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
 from evolutionary_agent import Candidate
+from models import TaskSpec, TestCase, Benchmark, RobustnessTest, EvaluationResult
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class EvaluationResult:
-    """Result of evaluating a candidate."""
-    candidate_id: str
-    overall_score: float
-    correctness_score: float
-    performance_score: float
-    robustness_score: float
-    metrics: Dict[str, Any]
-    errors: List[str]
-    warnings: List[str]
-    execution_time: float
 
 
 class EvaluationFramework:
@@ -45,18 +31,19 @@ class EvaluationFramework:
     Framework for evaluating candidate solutions.
     """
     
-    def __init__(self, task_spec: Dict[str, Any]):
+    def __init__(self, task_spec: Union[TaskSpec, Dict[str, Any]]):
         """
         Initialize the evaluation framework.
         
         Args:
             task_spec: Task specification including evaluation criteria
         """
-        self.task_spec = task_spec
-        self.test_cases = task_spec.get("test_cases", [])
-        self.performance_benchmarks = task_spec.get("performance_benchmarks", [])
-        self.robustness_tests = task_spec.get("robustness_tests", [])
-        self.success_criteria = task_spec.get("success_criteria", {})
+        # Normalize input to Pydantic TaskSpec (backward-compatible)
+        self.task_spec: TaskSpec = task_spec if isinstance(task_spec, TaskSpec) else TaskSpec(**task_spec)
+        self.test_cases: List[TestCase] = self.task_spec.test_cases
+        self.performance_benchmarks: List[Benchmark] = self.task_spec.performance_benchmarks
+        self.robustness_tests: List[RobustnessTest] = self.task_spec.robustness_tests
+        self.success_criteria = self.task_spec.success_criteria
         
         # Evaluation weights
         self.weights = {
@@ -219,26 +206,25 @@ class EvaluationFramework:
         for benchmark in self.performance_benchmarks:
             try:
                 result = self._run_performance_benchmark(parsed_code["code"], benchmark)
-                metrics[benchmark["name"]] = result
+                metrics[benchmark.name] = result
                 
                 # Check if performance meets requirements
-                if "target" in benchmark:
-                    if result["time"] > benchmark["target"]:
-                        warnings.append(f"Performance target not met for {benchmark['name']}")
+                if result["time"] > benchmark.target:
+                    warnings.append(f"Performance target not met for {benchmark.name}")
                 
             except Exception as e:
-                errors.append(f"Benchmark {benchmark['name']} error: {e}")
+                errors.append(f"Benchmark {benchmark.name} error: {e}")
         
         # Calculate performance score
         if metrics:
             # Normalize performance scores
             performance_scores = []
             for benchmark in self.performance_benchmarks:
-                if benchmark["name"] in metrics:
+                if benchmark.name in metrics:
                     score = self._normalize_performance_score(
-                        metrics[benchmark["name"]]["time"],
-                        benchmark.get("target", float('inf')),
-                        benchmark.get("baseline", 1.0)
+                        metrics[benchmark.name]["time"],
+                        getattr(benchmark, "target", float('inf')),
+                        getattr(benchmark, "baseline", 1.0) or 1.0,
                     )
                     performance_scores.append(score)
             
@@ -292,7 +278,7 @@ class EvaluationFramework:
             "warnings": warnings
         }
     
-    def _run_test_case(self, test_file: Path, test_case: Dict[str, Any]) -> Dict[str, Any]:
+    def _run_test_case(self, test_file: Path, test_case: TestCase) -> Dict[str, Any]:
         """Run a single test case."""
         # Create test script
         test_script = f"""
@@ -303,10 +289,10 @@ sys.path.append('{test_file.parent}')
 from test_candidate import *
 
 # Test case
-{test_case['code']}
+{test_case.code}
 
 # Expected result
-expected = {test_case['expected']}
+expected = {test_case.expected}
 actual = result
 
 # Check result
@@ -335,7 +321,7 @@ else:
         except Exception as e:
             return {"passed": False, "error": str(e)}
     
-    def _run_performance_benchmark(self, code: str, benchmark: Dict[str, Any]) -> Dict[str, Any]:
+    def _run_performance_benchmark(self, code: str, benchmark: Benchmark) -> Dict[str, Any]:
         """Run a performance benchmark."""
         # Create benchmark script
         benchmark_script = f"""
@@ -346,15 +332,15 @@ import sys
 {code}
 
 # Benchmark
-{benchmark['code']}
+{benchmark.code}
 
 # Measure execution time
 start_time = time.time()
-for _ in range({benchmark.get('iterations', 100)}):
-    result = {benchmark['function_call']}
+for _ in range({benchmark.iterations}):
+    result = {benchmark.function_call}
 end_time = time.time()
 
-execution_time = (end_time - start_time) / {benchmark.get('iterations', 100)}
+execution_time = (end_time - start_time) / {benchmark.iterations}
 print(f"{{execution_time}}")
 """
         
@@ -378,7 +364,7 @@ print(f"{{execution_time}}")
         except Exception as e:
             return {"time": float('inf'), "success": False, "error": str(e)}
     
-    def _run_robustness_test(self, code: str, test: Dict[str, Any]) -> Dict[str, Any]:
+    def _run_robustness_test(self, code: str, test: RobustnessTest) -> Dict[str, Any]:
         """Run a robustness test."""
         # Create test script
         test_script = f"""
@@ -388,14 +374,14 @@ import sys
 {code}
 
 # Robustness test
-{test['code']}
+{test.code}
 
 # Check if function handles edge case gracefully
 try:
-    result = {test['function_call']}
+    result = {test.function_call}
     print("PASS")
 except Exception as e:
-    if {test.get('expect_exception', False)}:
+    if {test.expect_exception}:
         print("PASS")
     else:
         print(f"FAIL: {{e}}")

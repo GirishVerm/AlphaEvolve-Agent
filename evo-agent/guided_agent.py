@@ -22,6 +22,15 @@ from artifact_support import ArtifactType, ArtifactCandidate
 from multi_objective import Objective, MultiObjectiveConfig, MultiObjectiveEvaluator
 from cost_manager import CostConfig, BudgetAwareLLMInterface
 from analysis_engine import AnalysisEngine, Recommendation
+from evaluation_framework import EvaluationFramework
+from evolutionary_agent import Candidate
+from models import (
+    TaskSpec as EvalTaskSpec,
+    TestCase,
+    Benchmark,
+    RobustnessTest,
+    SuccessCriteria,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -227,7 +236,39 @@ class GuidedAgent:
             return current_code
     
     async def evaluate_code(self, code: str) -> Dict[str, float]:
-        """Evaluate code."""
+        """Evaluate code. Prefer Pydantic-based EvaluationFramework when a spec exists."""
+        # Attempt to build a strict eval spec for the task
+        spec = self._build_eval_spec_for_task()
+
+        if spec is not None:
+            try:
+                # Normalize code to expose a canonical 'solve' function for tests
+                normalized_code = self._ensure_solve_alias(code)
+
+                candidate = Candidate(
+                    id=f"eval_{int(time.time())}",
+                    code=normalized_code,
+                    prompt=self.prompts.get("code_generation", ""),
+                    tools=self.tools,
+                    memory=self.memory,
+                    generation=self.generation,
+                    parent_id=None,
+                    mutation_type="guided"
+                )
+
+                evaluator = EvaluationFramework(spec)
+                result = evaluator.evaluate_candidate(candidate)
+
+                return {
+                    "correctness": result.correctness_score,
+                    "performance": result.performance_score,
+                    "robustness": result.robustness_score,
+                    "overall": result.overall_score,
+                }
+            except Exception as e:
+                logger.warning(f"Pydantic eval failed, falling back to heuristic: {e}")
+
+        # Fallback heuristic evaluation
         try:
             artifact = ArtifactCandidate(
                 id=f"eval_{int(time.time())}",
@@ -235,9 +276,7 @@ class GuidedAgent:
                 artifact_type=ArtifactType.PYTHON_CODE,
                 metadata={"task": self.task.task_name}
             )
-            
             fitness_scores = await self._evaluate_artifact_with_hygiene(artifact)
-            
             return {
                 "correctness": fitness_scores[0] if len(fitness_scores) > 0 else 0.5,
                 "performance": fitness_scores[1] if len(fitness_scores) > 1 else 0.5,
@@ -247,6 +286,71 @@ class GuidedAgent:
         except Exception as e:
             logger.warning(f"Code evaluation failed: {e}")
             return {"correctness": 0.5, "performance": 0.5, "robustness": 0.5, "overall": 0.5}
+
+    def _ensure_solve_alias(self, code: str) -> str:
+        """Ensure tests can call a canonical function 'solve'. If missing, alias the first public function."""
+        try:
+            if re.search(r"\n\s*def\s+solve\s*\(", code):
+                return code
+            match = re.search(r"\n\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(", code)
+            if match:
+                func_name = match.group(1)
+                if func_name != "solve":
+                    return f"{code}\n\n# Alias for evaluation\nsolve = {func_name}\n"
+            return code
+        except Exception:
+            return code
+
+    def _build_eval_spec_for_task(self) -> Optional[EvalTaskSpec]:
+        """Build a strict TaskSpec for known tasks. Currently supports Fibonacci."""
+        name = (self.task.task_name or "").lower()
+        if "fibonacci" in name:
+            tests: List[TestCase] = [
+                TestCase(name="n=0", code="result = solve(0)", expected=0),
+                TestCase(name="n=1", code="result = solve(1)", expected=1),
+                TestCase(name="n=5", code="result = solve(5)", expected=5),
+                TestCase(name="n=10", code="result = solve(10)", expected=55),
+            ]
+
+            benches: List[Benchmark] = [
+                Benchmark(
+                    name="perf_small",
+                    code="pass",
+                    function_call="solve(20)",
+                    iterations=200,
+                    target=0.003,
+                    baseline=0.01,
+                ),
+                Benchmark(
+                    name="perf_medium",
+                    code="pass",
+                    function_call="solve(30)",
+                    iterations=50,
+                    target=0.02,
+                    baseline=0.08,
+                ),
+            ]
+
+            robust: List[RobustnessTest] = [
+                RobustnessTest(name="negative", code="pass", function_call="solve(-1)", expect_exception=True),
+                RobustnessTest(name="non_int", code="pass", function_call="solve('10')", expect_exception=True),
+            ]
+
+            criteria = SuccessCriteria(
+                correctness_threshold=0.9,
+                performance_threshold_ms=50.0,
+                robustness_threshold=0.8,
+            )
+
+            return EvalTaskSpec(
+                test_cases=tests,
+                performance_benchmarks=benches,
+                robustness_tests=robust,
+                success_criteria=criteria,
+            )
+
+        # Unknown task type → no strict spec yet
+        return None
     
     async def _evaluate_artifact_with_hygiene(self, artifact: ArtifactCandidate) -> List[float]:
         """Evaluate artifact with namespace hygiene."""

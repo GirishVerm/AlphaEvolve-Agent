@@ -16,16 +16,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMConfig:
     """Configuration for LLM interface."""
-    model: str = "o4-mini"
+    model: str = "gpt-5-chat"
     temperature: float = 0.7
     max_tokens: int = 2000
     timeout: int = 60
     retry_attempts: int = 3
     retry_delay: float = 1.0
     # Azure OpenAI settings
-    azure_endpoint: str = "https://vinod-m7y6fqof-eastus2.cognitiveservices.azure.com/"
-    api_version: str = "2024-12-01-preview"
-    deployment_name: str = "o4-mini"
+    azure_endpoint: str = "https://vinod-m7y6fqof-eastus2.openai.azure.com/"
+    api_version: str = "2025-08-07"
+    deployment_name: str = "gpt-5-chat"
 
 
 class LLMInterface:
@@ -78,10 +78,10 @@ class LLMInterface:
         # Merge config with kwargs
         params = {
             "model": self.config.deployment_name,  # Use deployment name for Azure
-            "max_completion_tokens": self.config.max_tokens,  # o4-mini uses max_completion_tokens
+            "max_tokens": self.config.max_tokens,
             **kwargs
         }
-        # o4-mini only supports temperature=1 (default), so we don't set it
+        # Temperature left to model defaults unless explicitly provided
         
         for attempt in range(self.config.retry_attempts):
             try:
