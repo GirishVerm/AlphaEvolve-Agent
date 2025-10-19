@@ -1,14 +1,14 @@
-# 🚀 **evo-agent-alpha-avolve-palantir**
+# 🚀 **AlphaEvolve Agent - Advanced Evolutionary AI System**
 
-An advanced evolutionary agent system that evolves both **task artifacts** (code) and **agent components** (prompts, tools, memory) through guided interaction.
+An advanced evolutionary agent system that implements **AlphaEvolve-grade** capabilities for self-improving AI agents. The system combines multiple cutting-edge approaches including dual evolution, multi-objective optimization, and human-in-the-loop guidance.
 
 ## 🎯 **Quick Start**
 
 ### **1. Clone & Setup**
 ```bash
-git clone https://github.com/GirishVerm/evo-agent-alpha-avolve-palantir.git
-cd evo-agent-alpha-avolve-palantir/evo-agent
-pip install -r requirements.txt
+git clone https://github.com/GirishVerm/AlphaEvolve-Agent.git
+cd palantir-agent
+python setup.py
 ```
 
 ### **2. Run the Guided Agent**
@@ -16,19 +16,69 @@ pip install -r requirements.txt
 python run_guided.py
 ```
 
-## 🔧 **Azure OpenAI Configuration**
+## ✨ **Key Features**
 
-The system is **pre-configured** with Azure OpenAI credentials:
+- **🧬 Dual Evolution**: Evolves both task artifacts (code) and agent components (prompts, tools, memory)
+- **🎯 Multi-Objective Optimization**: Handles competing objectives with Pareto fronts
+- **👥 Human-in-the-Loop**: Interactive guidance and feedback throughout evolution
+- **💰 Cost Management**: Budget-aware LLM usage with rate limiting
+- **📊 Experiment Tracking**: Full ML-ops integration (MLflow, W&B)
+- **🌐 Web Interface**: Real-time visualization of evolution process
+- **🔧 Extensible**: Support for Python, SQL, JSON, YAML, Markdown artifacts
 
-```python
-# Current Configuration (llm_interface.py)
-azure_endpoint: str = "https://vinod-m7y6fqof-eastus2.cognitiveservices.azure.com/"
-api_key: str = "CxjrfpmQJB9TxEWZSTRzKTDIbqozO3kvx8S6yO0MGnfa8cdQ7HDMJQQJ99BCACHYHv6XJ3w3AAAAACOGevLG"
-deployment_name: str = "o4-mini"
-api_version: str = "2024-12-01-preview"
+## 🔧 **Configuration Setup**
+
+The system requires API credentials to be configured via environment variables:
+
+### **1. Copy Environment Template**
+```bash
+cp .env.example .env
 ```
 
-**No additional setup required!** The system is ready to run with these credentials.
+### **2. Configure Your API Keys**
+Edit `.env` file with your credentials:
+
+```bash
+# Azure OpenAI Configuration (recommended)
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
+AZURE_OPENAI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
+AZURE_OPENAI_API_VERSION=2024-12-01-preview
+
+# OR OpenAI Configuration (fallback)
+OPENAI_API_KEY=your-openai-api-key-here
+```
+
+### **3. Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+## 🏗️ **Architecture Overview**
+
+The system is built with a modular, production-ready architecture:
+
+```
+palantir-agent/
+├── 🧠 Core Components
+│   ├── src/                    # Base agent framework
+│   │   ├── agent.py           # Core agent class
+│   │   ├── document_processor.py
+│   │   ├── retrieval_engine.py
+│   │   └── embedding_manager.py
+│   └── evo_agent/             # Evolutionary system
+│       ├── evolutionary_agent.py
+│       ├── guided_agent.py
+│       ├── multi_objective.py
+│       └── cost_manager.py
+├── 🌐 Web Interface
+│   ├── webapp.py
+│   ├── templates/
+│   └── static/
+└── 📚 Documentation
+    ├── README.md
+    └── setup.py
+```
 
 ## 🧠 **How `run_guided.py` Works**
 
@@ -240,6 +290,55 @@ Generations: 2
 🎉 EVOLUTION COMPLETE! The agent has evolved and created working code!
 ```
 
+## 🎯 **Use Cases**
+
+- **Code Generation**: Evolve better implementations of algorithms
+- **Documentation**: Generate and improve technical documentation
+- **Data Processing**: Create optimized data transformation pipelines
+- **API Development**: Design and refine REST API endpoints
+- **Testing**: Generate comprehensive test suites
+- **Configuration**: Optimize system configurations
+
+## 🧪 **Advanced Features**
+
+### **Multi-Objective Optimization**
+```python
+objectives = [
+    Objective(name="correctness", weight=0.4, minimize=False),
+    Objective(name="performance", weight=0.3, minimize=False),
+    Objective(name="robustness", weight=0.3, minimize=False)
+]
+```
+
+### **Cost Management**
+```python
+cost_config = CostConfig(
+    max_cost_per_experiment=50.0,
+    max_requests_per_minute=60,
+    token_cost_per_1k=0.03
+)
+```
+
+### **Human-in-the-Loop**
+```python
+# Request human review
+response = await agent.request_human_review(candidate, context)
+if response.approved:
+    print("Human approved the candidate!")
+```
+
+### **Experiment Tracking**
+- **MLflow Integration**: Full experiment tracking and model registry
+- **Weights & Biases**: Real-time experiment monitoring
+- **Checkpointing**: Resume experiments from any point
+- **Artifact Logging**: Save plots, models, and results
+
+### **Scalable Diversity Management**
+- **Incremental Clustering**: BIRCH algorithm for large populations
+- **Novelty Archives**: Maintains diverse solution history
+- **Caching Strategy**: Reduces clustering overhead
+- **Memory Management**: Automatic cache clearing
+
 ## 🔍 **Key Features**
 
 ### **Dual Evolution**
@@ -283,6 +382,59 @@ Generations: 2
 ```bash
 python test_llm.py
 ```
+
+## 📈 **Performance**
+
+- **Scalability**: Handles populations up to 1000+ candidates
+- **Efficiency**: O(N log N) diversity selection algorithms
+- **Cost-Aware**: Automatic budget management and rate limiting
+- **Reproducible**: Full experiment tracking and checkpointing
+
+## 🔧 **Configuration**
+
+### **Environment Variables**
+```bash
+# Required
+AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+
+# Optional
+OPENAI_API_KEY=your-openai-key  # Fallback
+MLFLOW_TRACKING_URI=http://localhost:5000
+WANDB_API_KEY=your-wandb-key
+LOG_LEVEL=INFO
+```
+
+### **Agent Configuration**
+```python
+@dataclass
+class AgentConfig:
+    max_cost: float = 20.0              # Maximum cost per experiment
+    evolution_frequency: int = 2         # Evolve agent every N generations
+    population_size: int = 3             # Population size for evolution
+    max_generations: int = 5             # Maximum evolution cycles
+```
+
+## 🤝 **Contributing**
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 **License**
+
+This project is proprietary software. All rights reserved. See the [LICENSE](LICENSE) file for details.
+
+**⚠️ Important**: This software is protected by copyright and may not be used, copied, modified, or distributed without explicit written permission from the copyright holder.
+
+## 🙏 **Acknowledgments**
+
+- Inspired by AlphaEvolve research
+- Built with OpenAI and Azure OpenAI
+- Uses LlamaIndex for RAG capabilities
+- Integrates with MLflow and Weights & Biases
 
 ## 📈 **What Makes This Special**
 

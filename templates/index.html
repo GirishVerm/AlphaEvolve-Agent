@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Guided Agent Evolution Webapp</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Top: Task Definition -->
+        <div class="top-section">
+            <form id="task-form">
+                <label for="task">Task Definition:</label>
+                <input type="text" id="task" name="task" value="{{ task }}" style="width:60%;">
+                <button type="submit">Set Task</button>
+            </form>
+        </div>
+        <!-- Bottom: T-shape split -->
+        <div class="bottom-section">
+            <div class="left-pane">
+                <h3>Prompts (Evolution)</h3>
+                <div id="prompt-diff">{{ prompt_diff|safe }}</div>
+            </div>
+            <div class="right-pane">
+                <h3>Code (Evolution)</h3>
+                <div id="code-diff">{{ code_diff|safe }}</div>
+            </div>
+        </div>
+        <div class="actions">
+            <button id="evolve-btn">Evolve</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById('task-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const task = document.getElementById('task').value;
+            await fetch('/set_task', {method: 'POST', body: new URLSearchParams({task})});
+            location.reload();
+        };
+        document.getElementById('evolve-btn').onclick = async function() {
+            const res = await fetch('/evolve', {method: 'POST'});
+            const data = await res.json();
+            document.getElementById('prompt-diff').innerHTML = data.prompt_diff;
+            document.getElementById('code-diff').innerHTML = data.code_diff;
+        };
+    </script>
+</body>
+</html>

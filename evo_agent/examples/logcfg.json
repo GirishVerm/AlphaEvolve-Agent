@@ -1,0 +1,23 @@
+{
+  "log_files": ["/tmp/app.log"],
+  "patterns": [
+    {
+      "id": "err",
+      "regex": "ERROR",
+      "severity": "ERROR",
+      "cooldown": 1.0,
+      "ignore": ["IGNORE_ME"],
+      "anomaly_threshold": 2.0
+    },
+    {
+      "id": "warn",
+      "regex": "WARN",
+      "severity": "WARN",
+      "cooldown": 0.5,
+      "ignore": [],
+      "anomaly_threshold": 2.0
+    }
+  ]
+}
+
+

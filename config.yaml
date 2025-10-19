@@ -1,0 +1,17 @@
+general:
+  persist_dir: storage
+  temp_dir: temp
+retrieval:
+  search_type: hybrid
+  top_k: 5
+  hybrid:
+    semantic_weight: 0.5
+    keyword_weight: 0.5
+embeddings:
+  provider: local
+  allow_fallback: true
+  local:
+    model_name: all-MiniLM-L6-v2
+    device: cpu
+storage:
+  provider: simple

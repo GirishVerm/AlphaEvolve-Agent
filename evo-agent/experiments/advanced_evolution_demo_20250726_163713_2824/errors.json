@@ -1,8 +1,0 @@
-[
-  {
-    "error_type": "ValueError",
-    "error_message": "empty vocabulary; perhaps the documents only contain stop words",
-    "context": "evolution_loop",
-    "timestamp": "2025-07-26T16:37:17.113294"
-  }
-]
