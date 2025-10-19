@@ -7,7 +7,7 @@ An advanced evolutionary agent system that implements **AlphaEvolve-grade** capa
 ### **1. Clone & Setup**
 ```bash
 git clone https://github.com/GirishVerm/AlphaEvolve-Agent.git
-cd palantir-agent
+cd AlphaEvolve-Agent
 python setup.py
 ```
 
