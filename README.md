@@ -2,6 +2,16 @@
 
 An advanced evolutionary agent system that implements **AlphaEvolve-grade** capabilities for self-improving AI agents. The system combines multiple cutting-edge approaches including dual evolution, multi-objective optimization, and human-in-the-loop guidance.
 
+## 📈 **What Makes This Special**
+
+1. **Self-Evolving Agent**: The agent itself evolves its capabilities
+2. **Dual Optimization**: Both task artifacts and agent components improve
+3. **Guided Interaction**: Step-by-step process with user feedback
+4. **Cost-Aware**: Built-in budget management
+5. **Multi-Objective**: Evaluates multiple aspects of code quality
+
+The system represents a significant step toward **AlphaEvolve-grade** self-improving agents that can evolve both their outputs and their own capabilities! 🚀
+
 ## 🎯 **Quick Start**
 
 ### **1. Clone & Setup**
@@ -436,12 +446,3 @@ This project is proprietary software. All rights reserved. See the [LICENSE](LIC
 - Uses LlamaIndex for RAG capabilities
 - Integrates with MLflow and Weights & Biases
 
-## 📈 **What Makes This Special**
-
-1. **Self-Evolving Agent**: The agent itself evolves its capabilities
-2. **Dual Optimization**: Both task artifacts and agent components improve
-3. **Guided Interaction**: Step-by-step process with user feedback
-4. **Cost-Aware**: Built-in budget management
-5. **Multi-Objective**: Evaluates multiple aspects of code quality
-
-The system represents a significant step toward **AlphaEvolve-grade** self-improving agents that can evolve both their outputs and their own capabilities! 🚀
