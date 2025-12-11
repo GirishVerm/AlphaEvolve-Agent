@@ -68,13 +68,29 @@ class LLMInterface:
         """Load configuration from environment variables."""
         import os
         
+        # #region agent log
+        with open('/Users/girishverma/Developer/AlphaEvolve-Agent/.cursor/debug.log', 'a') as f:
+            f.write('{"id":"log_load_config","timestamp":0,"location":"evo_agent/llm_interface.py:_load_config_from_env","message":"Loading config with hardcoded specs","data":{},"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}\n')
+        # #endregion
+
+        # Hardcoded specs as requested
+        self.config.azure_endpoint = "https://vinod-m7y6fqof-eastus2.cognitiveservices.azure.com/"
+        self.config.deployment_name = "gpt-5-nano"
+        self.config.api_version = "2024-12-01-preview"
+
+        # Check for custom AZURE_GPT5 configuration for KEY (Highest Priority)
+        if os.getenv("AZURE_GPT5_KEY"):
+            self.config.api_key = os.getenv("AZURE_GPT5_KEY")
+            # Endpoint/Deployment/Version are already set above
+            return
+
         # Load Azure OpenAI configuration
         self.config.api_key = os.getenv("AZURE_OPENAI_API_KEY", self.config.api_key)
-        self.config.azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", self.config.azure_endpoint)
-        self.config.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", self.config.deployment_name)
-        self.config.api_version = os.getenv("AZURE_OPENAI_API_VERSION", self.config.api_version)
+        # self.config.azure_endpoint = ... (Overridden)
+        # self.config.deployment_name = ... (Overridden)
+        # self.config.api_version = ... (Overridden)
         
-        # Fallback to OpenAI if Azure not configured
+        # Fallback to OpenAI if Azure not configured (and no Azure key found)
         if not self.config.api_key and os.getenv("OPENAI_API_KEY"):
             self.config.api_key = os.getenv("OPENAI_API_KEY")
             self.config.azure_endpoint = ""  # Clear Azure endpoint to use OpenAI

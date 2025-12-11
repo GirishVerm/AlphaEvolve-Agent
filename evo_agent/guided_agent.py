@@ -18,14 +18,33 @@ from datetime import datetime
 import re
 import os
 import shutil
+import sys
 
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.syntax import Syntax
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich.markdown import Markdown
+    from rich.layout import Layout
+    console = Console()
+    HAS_RICH = True
+except ImportError:
+    HAS_RICH = False
+    print("Rich library not found. Falling back to basic CLI.")
+
+# #region agent log
+with open('/Users/girishverma/Developer/AlphaEvolve-Agent/.cursor/debug.log', 'a') as f:
+    f.write('{"id":"log_guided_import_1","timestamp":0,"location":"evo_agent/guided_agent.py:imports","message":"Importing llm_interface","data":{},"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}\n')
+# #endregion
 from llm_interface import LLMInterface, LLMConfig
 from artifact_support import ArtifactType, ArtifactCandidate
 from multi_objective import Objective, MultiObjectiveConfig, MultiObjectiveEvaluator
 from cost_manager import CostConfig, BudgetAwareLLMInterface
 from analysis_engine import AnalysisEngine, Recommendation
 from evaluation_framework import EvaluationFramework
-from evolutionary_agent import Candidate
+from models import Candidate
 from models import (
     TaskSpec as EvalTaskSpec,
     TestCase,
@@ -51,9 +70,9 @@ class TaskSpec:
 class AgentConfig:
     """Configuration for the guided agent."""
     max_cost: float = 20.0
-    evolution_frequency: int = 2  # Evolve agent every N generations
+    evolution_frequency: int = 1  # Evolve agent every generation for this demo
     population_size: int = 3
-    max_generations: int = 5
+    max_generations: int = 3  # Reduced to 3 as requested
 
 class GuidedAgent:
     """A guided agent that walks through the evolution process step by step."""
@@ -768,6 +787,11 @@ class GuidedAgent:
             f.write(str(evaluation))
     
     async def run_guided_session(self):
+        # #region agent log
+        with open('/Users/girishverma/Developer/AlphaEvolve-Agent/.cursor/debug.log', 'a') as f:
+            f.write('{"id":"log_run_session_start","timestamp":0,"location":"evo_agent/guided_agent.py:run_guided_session","message":"Starting guided session with modern CLI","data":{},"sessionId":"debug-session","runId":"run1","hypothesisId":"E"}\n')
+        # #endregion
+
         # Clean generation folders at the start of each run
         base_dir = os.path.abspath(os.path.dirname(__file__))
         for folder in ['prompts', 'code', 'evaluations']:
@@ -777,26 +801,46 @@ class GuidedAgent:
                     file_path = os.path.join(folder_path, filename)
                     if os.path.isfile(file_path):
                         os.remove(file_path)
+        
         await self.check_llm_live()
-        print("🤖 GUIDED EVOLUTIONARY AGENT")
-        print("=" * 50)
-        llm_status = "🟢 LLM is LIVE" if self.llm_live else "🔴 LLM is NOT AVAILABLE"
-        print(f"LLM Status: {llm_status}")
-        print("I'll guide you through the evolution process step by step!")
-        print("=" * 50)
+        
+        if HAS_RICH:
+            console.clear()
+            console.print(Panel.fit("[bold blue]🤖 GUIDED EVOLUTIONARY AGENT[/bold blue]", border_style="blue"))
+            llm_status = "[bold green]🟢 LLM is LIVE[/bold green]" if self.llm_live else "[bold red]🔴 LLM is NOT AVAILABLE[/bold red]"
+            console.print(f"Status: {llm_status}")
+            console.print("[dim]Use hardcoded specs: gpt-5-nano @ eastus2[/dim]")
+        else:
+            print("🤖 GUIDED EVOLUTIONARY AGENT")
+            print("=" * 50)
+            llm_status = "🟢 LLM is LIVE" if self.llm_live else "🔴 LLM is NOT AVAILABLE"
+            print(f"LLM Status: {llm_status}")
         
         # Step 1: Get task from user
         self.task = await self.get_task_from_user()
-        print(f"\n✅ Task set: {self.task.task_name}")
+        if HAS_RICH:
+            console.print(f"\n[bold green]✅ Task set:[/bold green] {self.task.task_name}")
+        else:
+            print(f"\n✅ Task set: {self.task.task_name}")
         
         # Step 2: Analyze task
-        print("\n📝 Analyzing the task...")
-        analysis = await self.analyze_task()
-        print(f"Analysis: {analysis[:200]}...")
+        if HAS_RICH:
+            with console.status("[bold yellow]📝 Analyzing the task...[/bold yellow]"):
+                analysis = await self.analyze_task()
+            console.print(Panel(analysis[:500] + "...", title="Task Analysis (Truncated)", border_style="yellow"))
+        else:
+            print("\n📝 Analyzing the task...")
+            analysis = await self.analyze_task()
+            print(f"Analysis: {analysis[:200]}...")
         
         # Step 3: Generate initial code
-        print("\n💻 Generating initial code...")
-        initial_code = await self.generate_initial_code()
+        if HAS_RICH:
+            with console.status("[bold cyan]💻 Generating initial code...[/bold cyan]"):
+                initial_code = await self.generate_initial_code()
+            console.print(Panel(Syntax(initial_code[:500] + "\n# ... truncated ...", "python", theme="monokai", line_numbers=True), title="Initial Code (Truncated)", border_style="cyan"))
+        else:
+            print("\n💻 Generating initial code...")
+            initial_code = await self.generate_initial_code()
         
         # Store initial code for comparison
         self.initial_code = initial_code
@@ -814,31 +858,65 @@ class GuidedAgent:
         
         # Step 4: Evolution cycles
         for cycle in range(self.config.max_generations):
-            print(f"\n🔄 EVOLUTION CYCLE {cycle + 1}")
+            if HAS_RICH:
+                console.clear()
+                console.print(Panel(f"[bold magenta]🔄 EVOLUTION CYCLE {cycle + 1}/{self.config.max_generations}[/bold magenta]", border_style="magenta"))
+                console.print(f"[dim]Task: {self.task.task_name}[/dim]")
+            else:
+                print(f"\n🔄 EVOLUTION CYCLE {cycle + 1}")
+            
             # Ask for feedback each cycle (skip if non-interactive)
             if os.environ.get("AGENT_NON_INTERACTIVE", "").strip().lower() in {"1", "true", "yes", "y"}:
                 feedback = ""
             else:
-                feedback = input(f"\n💬 Provide feedback for improvement (or press Enter to skip): ").strip()
+                if HAS_RICH:
+                    feedback = console.input(f"[bold]💬 Feedback (Enter to skip): [/bold]").strip()
+                else:
+                    feedback = input(f"\n💬 Provide feedback for improvement (or press Enter to skip): ").strip()
             
             # Improve code
-            improved_code = await self.improve_code(initial_code, feedback)
+            if HAS_RICH:
+                with console.status("[bold green]🛠️  Improving code...[/bold green]"):
+                    improved_code = await self.improve_code(initial_code, feedback)
+                    
+                    # Evaluate both versions
+                    current_eval = await self.evaluate_code(initial_code)
+                    improved_eval = await self.evaluate_code(improved_code)
+            else:
+                improved_code = await self.improve_code(initial_code, feedback)
+                current_eval = await self.evaluate_code(initial_code)
+                improved_eval = await self.evaluate_code(improved_code)
             
-            # Evaluate both versions
-            current_eval = await self.evaluate_code(initial_code)
-            improved_eval = await self.evaluate_code(improved_code)
-            
-            print(f"\n📊 EVALUATION RESULTS:")
-            print(f"Current code - Overall: {current_eval['overall']:.3f}")
-            print(f"Improved code - Overall: {improved_eval['overall']:.3f}")
+            if HAS_RICH:
+                # Show truncated code diff or summary
+                console.print(Panel(Syntax(improved_code[:800] + ("\n... [truncated]" if len(improved_code) > 800 else ""), "python", theme="monokai", line_numbers=True), title="Improved Code (Snapshot)", border_style="green"))
+
+                table = Table(title="📊 Evaluation Results")
+                table.add_column("Metric", style="cyan")
+                table.add_column("Current Code", style="magenta")
+                table.add_column("Improved Code", style="green")
+                table.add_row("Overall", f"{current_eval['overall']:.3f}", f"{improved_eval['overall']:.3f}")
+                table.add_row("Correctness", f"{current_eval['correctness']:.3f}", f"{improved_eval['correctness']:.3f}")
+                table.add_row("Performance", f"{current_eval['performance']:.3f}", f"{improved_eval['performance']:.3f}")
+                console.print(table)
+            else:
+                print(f"\n📊 EVALUATION RESULTS:")
+                print(f"Current code - Overall: {current_eval['overall']:.3f}")
+                print(f"Improved code - Overall: {improved_eval['overall']:.3f}")
             
             # Choose better version
             if improved_eval['overall'] > current_eval['overall']:
-                print(f"✅ Improved code selected!")
+                if HAS_RICH:
+                    console.print(f"[bold green]✅ Improved code selected![/bold green]")
+                else:
+                    print(f"✅ Improved code selected!")
                 initial_code = improved_code
                 best_eval = improved_eval
             else:
-                print(f"⚠️ Current code retained")
+                if HAS_RICH:
+                    console.print(f"[bold yellow]⚠️ Current code retained[/bold yellow]")
+                else:
+                    print(f"⚠️ Current code retained")
                 best_eval = current_eval
             
             # Store in history
@@ -854,39 +932,67 @@ class GuidedAgent:
             
             # Evolve agent components periodically
             if cycle % self.config.evolution_frequency == 0:
-                await self.evolve_agent_components()
+                if HAS_RICH:
+                    with console.status("[bold purple]🧬 Evolving agent components...[/bold purple]"):
+                        await self.evolve_agent_components()
+                else:
+                    await self.evolve_agent_components()
             
             # Ask if user wants to continue
             if cycle < self.config.max_generations - 1:
                 if os.environ.get("AGENT_NON_INTERACTIVE", "").strip().lower() in {"1", "true", "yes", "y"}:
                     continue_choice = "y"
                 else:
-                    continue_choice = input(f"🔄 Continue to evolution cycle {cycle + 2}? (y/n): ").strip().lower()
+                    if HAS_RICH:
+                        # console.input(f"[dim]Press Enter to continue...[/dim]")
+                        continue_choice = "y" # Auto continue for smoother flow
+                    else:
+                        continue_choice = input(f"🔄 Continue to evolution cycle {cycle + 2}? (y/n): ").strip().lower()
                 if continue_choice != 'y':
                     break
         
         # Step 5: Execute the final task
-        print(f"\n🎯 EXECUTING THE FINAL TASK...")
-        result = await self.execute_task(initial_code)
+        if HAS_RICH:
+            console.clear()
+            console.print(Panel("[bold red]🎯 Executing Final Task[/bold red]", border_style="red"))
+            with console.status("[bold red]Running...[/bold red]"):
+                result = await self.execute_task(initial_code)
+        else:
+            print(f"\n🎯 EXECUTING THE FINAL TASK...")
+            result = await self.execute_task(initial_code)
         
         if result["success"]:
-            print(f"\n✅ TASK EXECUTION COMPLETE!")
-            print(f"Function: {result['function_name']}")
-            print(f"Success Rate: {result['success_rate']:.1%}")
+            if HAS_RICH:
+                console.print(f"\n[bold green]✅ TASK EXECUTION COMPLETE![/bold green]")
+                console.print(f"Function: {result['function_name']}")
+                console.print(f"Success Rate: {result['success_rate']:.1%}")
+            else:
+                print(f"\n✅ TASK EXECUTION COMPLETE!")
+                print(f"Function: {result['function_name']}")
+                print(f"Success Rate: {result['success_rate']:.1%}")
         else:
-            print(f"\n❌ TASK EXECUTION FAILED: {result['error']}")
+            if HAS_RICH:
+                console.print(f"\n[bold red]❌ TASK EXECUTION FAILED: {result['error']}[/bold red]")
+            else:
+                print(f"\n❌ TASK EXECUTION FAILED: {result['error']}")
         
         # Show final stats
         cost_stats = self.llm.get_cost_stats()
-        print(f"\n💰 COST STATISTICS:")
-        print(f"Total cost: ${cost_stats.get('total_cost', 0):.4f}")
-        print(f"Total requests: {cost_stats.get('total_requests', 0)}")
-        print(f"Generations: {self.generation}")
+        if HAS_RICH:
+            console.print(Panel(f"Total cost: ${cost_stats.get('total_cost', 0):.4f}\nTotal requests: {cost_stats.get('total_requests', 0)}\nGenerations: {self.generation}", title="Cost Statistics", border_style="green"))
+        else:
+            print(f"\n💰 COST STATISTICS:")
+            print(f"Total cost: ${cost_stats.get('total_cost', 0):.4f}")
+            print(f"Total requests: {cost_stats.get('total_requests', 0)}")
+            print(f"Generations: {self.generation}")
         
         # Show comprehensive evolution summary
         await self._show_evolution_summary()
         
-        print(f"\n🎉 EVOLUTION COMPLETE! The agent has evolved and created working code!")
+        if HAS_RICH:
+            console.print(f"\n[bold rainbow]🎉 EVOLUTION COMPLETE! The agent has evolved and created working code![/bold rainbow]")
+        else:
+            print(f"\n🎉 EVOLUTION COMPLETE! The agent has evolved and created working code!")
 
 async def main():
     """Run the guided agent."""

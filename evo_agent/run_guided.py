@@ -9,8 +9,9 @@ Usage: python3 run_guided.py
 """
 
 import asyncio
-import sys
 import os
+import sys
+import asyncio
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

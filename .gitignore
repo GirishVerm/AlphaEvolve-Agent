@@ -67,6 +67,11 @@ experiments/
 agents/*/storage/
 agents/*/temp/
 
+# Generated Artifacts (AlphaEvolve)
+evo_agent/code/gen_*.py
+evo_agent/evaluations/gen_*.txt
+evo_agent/prompts/gen_*.txt
+
 # API keys and secrets
 *secret*
 *key*

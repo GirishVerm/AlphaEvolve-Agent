@@ -5,10 +5,42 @@ Pydantic models for evaluation specifications and results.
 from __future__ import annotations
 
 from typing import Any, List, Optional, Dict
+from dataclasses import dataclass, field
 from pydantic import BaseModel, Field, field_validator
 
 
 NAME_MIN_LEN = 1
+
+
+@dataclass
+class Candidate:
+    """Represents a candidate solution in the evolutionary pool."""
+    id: str
+    code: str
+    prompt: str
+    tools: Dict[str, Any]
+    memory: Dict[str, Any]
+    fitness_score: float = 0.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    generation: int = 0
+    parent_id: Optional[str] = None
+    mutation_type: Optional[str] = None
+
+
+@dataclass
+class EvolutionConfig:
+    """Configuration for evolutionary parameters."""
+    population_size: int = 50
+    generations: int = 100
+    mutation_rate: float = 0.3
+    crossover_rate: float = 0.7
+    elite_size: int = 5
+    tournament_size: int = 3
+    parallel_evaluation: bool = True
+    max_workers: int = 4
+    evaluation_timeout: int = 300  # seconds
+    fitness_threshold: float = 0.95
+    diversity_weight: float = 0.1
 
 
 class TestCase(BaseModel):
