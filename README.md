@@ -46,19 +46,28 @@ graph TD
 - **Process**: Analyze past generations -> Identify weaknesses (e.g., "The agent keeps forgetting to import libraries") -> Rewrite system prompts or tool code to fix the systemic issue.
 - **Result**: A `code_tester` tool that starts simple but evolves to handle timeouts, multiprocessing, and edge cases automatically.
 
-## Core Components
+## Key Capabilities
 
-### Strict Evaluation Engine (`evaluation_framework.py`)
-We do not rely on LLM-based grading alone.
-- **Pydantic Validation**: All evaluation criteria (`TaskSpec`) are validated against strict schemas.
-- **Security Guardrails**: The system proactively scans for banned tokens (e.g., `import os`, `subprocess`) in generated test specs before execution.
+### 1. Type-Safe Evaluation (Pydantic)
+We do not rely on "vibes" or LLM-based grading alone.
+- **Strict Validation**: All evaluation criteria (`TaskSpec`) are validated against strict Pydantic schemas.
 - **Metric-Driven**: Success is measured by concrete metrics: Correctness (pass rate), Performance (execution time), and Robustness (edge case handling).
 
-### Sandboxed Execution (`code_tester`)
+### 2. Synthetic Test Generation
+The agent doesn't just write code; it writes its own tests.
+- **Hard Eval Suite**: The agent proactively asks the LLM to generate "hard" edge cases (e.g., negative inputs, large datasets) to break its own code.
+- **Self-Verification**: These synthetic tests form the "Success Criteria" that the code must pass to survive.
+
+### 3. Sandboxed Execution (`code_tester`)
 The agent starts with a basic `eval()` tool but quickly evolves a robust execution engine:
 - **Multiprocessing**: Code runs in isolated processes to prevent crashes.
 - **Timeouts**: Signal-based timeouts prevent infinite loops.
 - **Restricted Globals**: Execution happens in a namespace with only safe built-ins allowed.
+
+### 4. Hygiene & Safety Checks
+Before running any code, the agent performs static analysis:
+- **Syntax Check**: Ensures code is valid Python.
+- **Import Scanning**: Blocks dangerous imports (like `os` or `subprocess` in untrusted contexts).
 
 ## Detailed Workflow
 
@@ -77,54 +86,29 @@ When you run the agent, the following sequence occurs:
     *   After N generations, the agent reviews its own logs.
     *   If it notices it struggles with a specific aspect (e.g., concurrency), it updates its own system prompts to emphasize that aspect in future generations.
 
-## Project Structure
+## Project Structure & Artifacts
+
+All generated files are saved in the `evo_agent/` directory:
 
 ```
 AlphaEvolve-Agent/
 ├── evo_agent/
-│   ├── guided_agent.py          # Main agent logic & evolution loop
-│   ├── evaluation_framework.py  # Test runner & scoring engine
-│   ├── models.py                # Pydantic data models & validators
-│   ├── code/                    # Generated code artifacts (Gen 1..N)
-│   ├── prompts/                 # Evolved agent prompts (Gen 1..N)
-│   ├── evaluations/             # Detailed score reports
-│   └── tools/                   # Evolved tool definitions
-├── src/
-│   ├── agent.py                 # Base agent template
-│   └── llm_interface.py         # Abstraction for LLM calls
-├── requirements.txt             # Python dependencies
-└── run_guided.py                # Entry point script
+│   ├── code/                    # 📄 Generated Code
+│   │   ├── gen_1.py             # Initial attempt
+│   │   ├── gen_2.py             # Improved version
+│   │   └── gen_3.py             # Optimized version
+│   ├── evaluations/             # 📊 Score Reports
+│   │   ├── gen_1.txt            # "Correctness: 0.5..."
+│   │   └── gen_2.txt            # "Correctness: 0.9..."
+│   ├── prompts/                 # 🤖 Evolved Prompts
+│   │   ├── gen_1.txt            # Base prompts
+│   │   └── gen_2.txt            # Self-improved prompts
+│   ├── guided_agent.py          # Main agent logic
+│   ├── evaluation_framework.py  # Test runner
+│   └── models.py                # Pydantic models
 ```
 
-## Example Evolution Session
-
-Below is an example of the agent improving a "Thread-Safe LRU Cache".
-
-### Generation 1 (Baseline)
-**Input**: "Implement a Thread-Safe LRU Cache."
-**Output**: A standard Python `OrderedDict` implementation.
-**Evaluation**:
-*   Correctness: 100% (It works for single thread)
-*   Robustness: 20% (Fails under high concurrency)
-*   **Overall Score: 0.45**
-
-### Generation 2 (Improvement)
-**Feedback**: "The implementation causes race conditions under load. Use proper locking."
-**Output**: Added `threading.RLock` around `get` and `put` methods.
-**Evaluation**:
-*   Correctness: 100%
-*   Robustness: 90% (Passes stress tests)
-*   Performance: 40% (Global lock slows down high-throughput reads)
-*   **Overall Score: 0.70**
-
-### Generation 3 (Optimization)
-**Feedback**: "Performance is bottlenecked by the global lock."
-**Output**: Implemented lock striping (sharding) to allow concurrent reads.
-**Evaluation**:
-*   Correctness: 100%
-*   Robustness: 90%
-*   Performance: 85%
-*   **Overall Score: 0.92**
+**Note**: The `gen_*.py` files are ignored by git so they don't clutter the repo, but you can inspect them locally to see the agent's progress.
 
 ## Setup & Usage
 
@@ -159,4 +143,20 @@ To start the guided evolution process:
 python3 evo_agent/run_guided.py
 ```
 
-The agent will ask for a task description. You can observe the evolution process in real-time in the terminal, and view the artifacts in the `evo_agent/code/` directory.
+### Providing Custom Specs
+
+You can provide your task specifications in two ways:
+
+1.  **Interactive Mode**: The agent will ask you for:
+    *   Task Name
+    *   Description
+    *   Requirements
+    *   Success Criteria
+
+2.  **Environment Variables** (for automation):
+    ```bash
+    export AGENT_TASK_NAME="Fibonacci"
+    export AGENT_TASK_DESCRIPTION="Calculate Nth Fibonacci number"
+    export AGENT_TASK_REQUIREMENTS="Handle negative inputs, optimize for large N"
+    python3 evo_agent/run_guided.py
+    ```
