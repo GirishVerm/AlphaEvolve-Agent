@@ -11,29 +11,45 @@ Unlike standard agents that are static, this system implements **Dual Evolution*
 The system operates on two interlocking feedback loops. The **Artifact Loop** improves the user's code, while the **Meta-Loop** improves the agent's ability to write code.
 
 ```mermaid
-graph TD
-    %% Styling
-    classDef meta fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef artifact fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef eval fill:#bfb,stroke:#333,stroke-width:2px;
+%% Force white background
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff' }}}%%
 
-    subgraph Agent["Agent Self-Evolution (Meta-Loop)"]
-        direction TB
-        History[Performance History] --> Analyze[Meta-Analysis]
-        Analyze -->|Rewrite| Prompts[System Prompts]
-        Analyze -->|Refine| Tools[Tool Definitions]
-        Prompts:::meta --> AgentState
-        Tools:::meta --> AgentState{Current Agent}
+graph LR
+
+    %% Light-mode optimized styling
+    classDef meta fill:#FFE8A3,stroke:#555,stroke-width:1.5px,color:#333;
+    classDef artifact fill:#D8E6FF,stroke:#555,stroke-width:1.5px,color:#333;
+    classDef eval fill:#D7F5E1,stroke:#555,stroke-width:1.5px,color:#333;
+    classDef none fill:#ffffff,stroke:#ffffff,color:#ffffff;
+
+    %% BIG WRAPPER (background box)
+    subgraph Whole[" "]
+        direction LR
+        pad1[" "]:::none
+
+        %% Agent Loop
+        subgraph Agent["Agent Self-Evolution (Meta-Loop)"]
+            direction LR
+            History[Performance History] --> Analyze[Meta-Analysis]
+            Analyze -->|Rewrite| Prompts[System Prompts]
+            Analyze -->|Refine| Tools[Tool Definitions]
+            Prompts:::meta --> AgentState
+            Tools:::meta --> AgentState{Current Agent}
+        end
+
+        %% Task Loop
+        subgraph Task["Artifact Evolution (Task Loop)"]
+            direction LR
+            AgentState -->|Generates| Code[Gen N Code]
+            Code:::artifact --> Eval{Strict Evaluation}
+            Eval:::eval -->|Scores| History
+            Eval -->|Feedback| Improve[Improvement Phase]
+            Improve -->|Better Version?| Code
+        end
+
+        pad2[" "]:::none
     end
 
-    subgraph Task["Artifact Evolution (Task Loop)"]
-        direction TB
-        AgentState -->|Generates| Code[Gen N Code]
-        Code:::artifact --> Eval{Strict Evaluation}
-        Eval:::eval -->|Scores| History
-        Eval -->|Feedback| Improve[Improvement Phase]
-        Improve -->|Better Version?| Code
-    end
 ```
 
 ### 1. Artifact Loop
