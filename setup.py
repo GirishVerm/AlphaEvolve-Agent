@@ -46,8 +46,6 @@ def install_dependencies():
 def create_directories():
     """Create necessary directories."""
     directories = [
-        "agents/evolutionary_agent/storage",
-        "agents/evolutionary_agent/temp",
         "evo_agent/experiments",
         "evo_agent/code",
         "evo_agent/evaluations",
@@ -61,7 +59,7 @@ def create_directories():
 
 def main():
     """Main setup function."""
-    print("🚀 Setting up Palantir Agent...")
+    print("🚀 Setting up AlphaEvolve Agent...")
     print("=" * 50)
     
     # Check Python version
@@ -85,7 +83,6 @@ def main():
     print("\nNext steps:")
     print("1. Edit .env file with your API keys")
     print("2. Run: python evo_agent/run_guided.py")
-    print("3. Or run: python webapp.py (for web interface)")
 
 if __name__ == "__main__":
     main()
